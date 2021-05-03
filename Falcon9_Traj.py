@@ -81,18 +81,25 @@ g = (G * M_Earth) / ((R * 1000) ** 2)  # m s^-2
 # print(g)
 
 m_stage_1 = 422000  # kg
+m_dot_s_1 = 2312.5  # kg/s
+ve_s_1 = 2943  # m/s
+t_burn_s_1 = 160
+
 m_stage_2 = 128000  # kg
-m_dot = 2312.5  # kg/s
-Ve = 2943  # m/s
+m_dot_s_2 = 270  # kg/s
+ve_s_2 = 3433.5  # m/s
+t_burn_s_2 = 400
+
+ISS_approach = 1000
 
 
-def stage_1(state_var, t):
-    h, v = state_var
+def stage_1(state_var_launch, t):
+    h, v = state_var_launch
 
-    thrust = m_dot * Ve
+    thrust = m_dot_s_1 * ve_s_1
 
     M = m_stage_1 + m_stage_2
-    m = t * m_dot
+    m = t * m_dot_s_1
 
     thrust_acc = thrust / (M - m) / 1000
     g = - (G * M_Earth) / ((h * 1000) ** 2) / 1000
@@ -102,13 +109,13 @@ def stage_1(state_var, t):
     return [v, dvdt]
 
 
-def stage_2(state_var, t):
-    h, v = state_var
+def stage_2(state_var_s_2_ignition, t):
+    h, v = state_var_s_2_ignition
 
-    thrust = m_dot * Ve
+    thrust = m_dot_s_2 * ve_s_2
 
-    M = m_stage_1 + m_stage_2
-    m = t * m_dot
+    M = m_stage_2
+    m = (t - 160) * m_dot_s_2
 
     thrust_acc = thrust / (M - m) / 1000
     g = - (G * M_Earth) / ((h * 1000) ** 2) / 1000
@@ -118,25 +125,65 @@ def stage_2(state_var, t):
     return [v, dvdt]
 
 
-state_var = [6378.1, 0.0]  # [km, m/s]
+def leo_traj(state_var_c_dragon_separation, t):
+    h, v = state_var_c_dragon_separation
 
-t = np.linspace(0, 160, 101)
+    g = - (G * M_Earth) / ((h * 1000) ** 2) / 1000
 
-stage_1 = odeint(stage_1, state_var, t)
+    dvdt = g  # - (.3 * 0.25 * 200) / (M - m)
 
-x_1, v_1 = stage_1.T
-print(x_1)
+    return [v, dvdt]
 
 
-plt.plot(t, v_1)
+# Launch
+state_var_launch = [6378.1, 0.0]  # [km, m/s]
+
+t_s_1 = np.linspace(0, t_burn_s_1)
+
+stage_1 = odeint(stage_1, state_var_launch, t_s_1)
+
+h_stage_1, v_stage_1 = stage_1.T
+print(h_stage_1)
+
+
+# Stage 2 Ignition
+state_var_s_2_ignition = [h_stage_1[-1], v_stage_1[-1]]
+
+t_s_2 = np.linspace(t_s_1[-1], t_s_1[-1] + t_burn_s_2)
+
+stage_2 = odeint(stage_2, state_var_s_2_ignition, t_s_2)
+
+h_stage_2, v_stage_2 = stage_2.T
+print(h_stage_2)
+
+
+# Crew Dragon Separation & ISS Approach
+state_var_c_dragon_separation = [h_stage_2[-1], v_stage_2[-1]]
+
+t_leo_traj = np.linspace(t_s_2[-1], t_s_2[-1] + ISS_approach)
+
+leo_traj = odeint(leo_traj, state_var_c_dragon_separation, t_leo_traj)
+
+h_leo_traj, v_leo_traj = leo_traj.T
+print(h_leo_traj)
+
+
+plt.figure()
+
+plt.subplot(2, 1, 1)
+plt.plot(t_s_1, h_stage_1 - R)
+plt.plot(t_s_2, h_stage_2 - R)
+plt.plot(t_leo_traj, h_leo_traj - R)
+plt.xlabel('time')
+plt.ylabel('h(t)')
+
+plt.subplot(2, 1, 2)
+plt.plot(t_s_1, v_stage_1 * 3600)
+plt.plot(t_s_2, v_stage_2 * 3600)
+plt.plot(t_leo_traj, v_leo_traj * 3600)
 plt.xlabel('time')
 plt.ylabel('v(t)')
 
-plt.show()
-
-plt.plot(t, x_1 - R)
-plt.xlabel('time')
-plt.ylabel('h(t)')
 
 plt.show()
 
