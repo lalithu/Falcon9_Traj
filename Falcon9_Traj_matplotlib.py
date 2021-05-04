@@ -2,29 +2,34 @@ import numpy as np
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
-
 # Constants
 G = 6.67408 * 10 ** -11  # m^3 kg^-1 s^-2
 M_Earth = 5.972 * 10 ** 24  # kg
-# print(G * M_Earth)
 R = 6378.137  # km
 
-g = (G * M_Earth) / ((R * 1000) ** 2)  # m s^-2
-# print(g)
+g = (G * M_Earth) / ((R * 1000) ** 2)  # m s^-2 | 9.797686073547649
 
-m_stage_1 = 422000  # kg
-m_s_1_propellant = 370000  # kg
-m_dot_s_1 = 2312.5  # kg/s
-ve_s_1 = 2943  # m/s
-t_burn_s_1 = 162  # s
+m_c_dragon = 28184  # kg
 
-m_stage_2 = 128000  # kg
-m_s_2_propellant = 108000  # kg
-m_dot_s_2 = 270  # kg/s
-ve_s_2 = 3433.5  # m/s
+m_s_2_dry = 3900  # kg
+m_s_2_propellant = 105189  # kg
+m_stage_2 = m_s_2_dry + m_s_2_propellant  # kg | 96570
+isp_s_2 = 348  # s
+ve_s_2 = isp_s_2 * g  # m s^-1 | 3409.5947535945816
 t_burn_s_2 = 397  # s
+thrust_s_2 = 934000  # N
+m_dot_s_2 = thrust_s_2 / ve_s_2  # kg s^-1 | 273.93284759584
 
-t_coast = 1000  # s
+m_s_1_dry = 25600  # kg
+m_s_1_propellant = 395700  # kg
+m_stage_1 = m_s_1_dry + m_s_1_propellant  # kg | 421300
+isp_s_1 = 282  # s
+ve_s_1 = isp_s_1 * g  # m s^-1 | 2762.9474727404368
+t_burn_s_1 = 162  # s
+thrust_s_1 = 7607000  # N
+m_dot_s_1 = thrust_s_1 / ve_s_1  # kg s^-1 | 2753.219188946425
+
+t_coast = 1250  # s
 
 
 def stage_1(state_var_launch, t):
@@ -32,7 +37,7 @@ def stage_1(state_var_launch, t):
 
     thrust = m_dot_s_1 * ve_s_1
 
-    M = m_stage_1 + m_stage_2
+    M = m_stage_1 + m_stage_2 + m_c_dragon
     m = t * m_dot_s_1
 
     thrust_acc = thrust / (M - m) / 1000
@@ -48,8 +53,8 @@ def stage_2(state_var_s_2_ignition, t):
 
     thrust = m_dot_s_2 * ve_s_2
 
-    M = m_stage_2
-    m = (t - 160) * m_dot_s_2
+    M = m_stage_2 + m_c_dragon
+    m = (t - t_burn_s_1) * m_dot_s_2
 
     thrust_acc = thrust / (M - m) / 1000
     g = - (G * M_Earth) / ((h * 1000) ** 2) / 1000
@@ -77,7 +82,7 @@ t_s_1 = np.linspace(0, t_burn_s_1)
 stage_1 = odeint(stage_1, state_var_launch, t_s_1)
 
 h_stage_1, v_stage_1 = stage_1.T
-print(h_stage_1)
+# print(h_stage_1)
 
 
 # Stage 2 Ignition
@@ -88,7 +93,7 @@ t_s_2 = np.linspace(t_s_1[-1], t_s_1[-1] + t_burn_s_2)
 stage_2 = odeint(stage_2, state_var_s_2_ignition, t_s_2)
 
 h_stage_2, v_stage_2 = stage_2.T
-print(h_stage_2)
+# print(h_stage_2)
 
 
 # Crew Dragon Separation & ISS Approach
@@ -99,7 +104,7 @@ t_coast_traj = np.linspace(t_s_2[-1], t_s_2[-1] + t_coast)
 coast_traj = odeint(coast_traj, state_var_c_dragon_separation, t_coast_traj)
 
 h_coast_traj, v_coast_traj = coast_traj.T
-print(h_coast_traj)
+# print(h_coast_traj)
 
 plt.figure()
 
@@ -121,9 +126,9 @@ plt.ylabel('v(t)')
 
 # Mass(t)
 plt.subplot(3, 1, 3)
-plt.plot(t_s_1, 52000 + (m_s_1_propellant - t_s_1 * m_dot_s_1))
-plt.plot(t_s_2, 20000 + m_s_2_propellant - (t_s_2 - 160) * m_dot_s_2)
-plt.plot(t_coast_traj, 20000 + t_coast_traj * 0)
+plt.plot(t_s_1, m_stage_1 + m_stage_2 + m_c_dragon - t_s_1 * m_dot_s_1)
+plt.plot(t_s_2, m_stage_2 + m_c_dragon - (t_s_2 - t_burn_s_1) * m_dot_s_2)
+plt.plot(t_coast_traj, m_c_dragon - t_coast_traj * 0)
 plt.xlabel('time')
 plt.ylabel('m(t)')
 
