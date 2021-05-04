@@ -9,10 +9,10 @@ R = 6378.137  # km
 
 g = (G * M_Earth) / ((R * 1000) ** 2)  # m s^-2 | 9.797686073547649
 
-m_c_dragon = 32130  # kg
+m_c_dragon = 28184  # kg
 
 m_s_2_dry = 3900  # kg
-m_s_2_propellant = 92670  # kg
+m_s_2_propellant = 105189  # kg
 m_stage_2 = m_s_2_dry + m_s_2_propellant  # kg | 96570
 isp_s_2 = 348  # s
 ve_s_2 = isp_s_2 * g  # m s^-1 | 3409.5947535945816
