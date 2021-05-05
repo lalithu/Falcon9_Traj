@@ -18,25 +18,33 @@ R = 6378.137  # km
 
 g = (G * M_Earth) / ((R * 1000) ** 2)  # m s^-2 | 9.797686073547649
 
-m_c_dragon = 28184  # kg
+# https://flightclub.io/build/editor/launchvehicle
+m_payload = 1142
 
-m_s_2_dry = 3900  # kg
-m_s_2_propellant = 105189  # kg
+# https://flightclub.io/build/editor/launchvehicle/stages/2
+m_c_d_dry = 9525
+m_c_dragon_propellant = 1388
+m_c_dragon = m_c_d_dry + m_c_dragon_propellant  # kg
+
+# https://flightclub.io/build/editor/launchvehicle/stages/1
+m_s_2_dry = 4000  # kg
+m_s_2_propellant = 103500  # kg
 m_stage_2 = m_s_2_dry + m_s_2_propellant  # kg | 96570
 isp_s_2 = 348  # s
 ve_s_2 = isp_s_2 * g  # m s^-1 | 3409.5947535945816
 t_burn_s_2 = 397  # s
-thrust_s_2 = 934000  # N
-m_dot_s_2 = thrust_s_2 / ve_s_2  # kg s^-1 | 273.93284759584
+thrust_s_2 = 981000  # N
+m_dot_s_2 = m_s_2_propellant / t_burn_s_2  # kg s^-1 | 273.93284759584
 
-m_s_1_dry = 25600  # kg
-m_s_1_propellant = 395700  # kg
+# https://flightclub.io/build/editor/launchvehicle/stages/0
+m_s_1_dry = 22100  # kg
+m_s_1_propellant = 409500  # kg
 m_stage_1 = m_s_1_dry + m_s_1_propellant  # kg | 421300
-isp_s_1 = 282  # s
+isp_s_1 = 283  # s
 ve_s_1 = isp_s_1 * g  # m s^-1 | 2762.9474727404368
 t_burn_s_1 = 162  # s
-thrust_s_1 = 7607000  # N
-m_dot_s_1 = thrust_s_1 / ve_s_1  # kg s^-1 | 2753.219188946425
+thrust_s_1 = 9 * 834000  # N | 7506000
+m_dot_s_1 = m_s_1_propellant / t_burn_s_1  # kg s^-1 | 2527.77777778
 
 t_coast = 1250  # s
 
@@ -46,11 +54,11 @@ def stage_1(state_var_launch, t):
 
     thrust = m_dot_s_1 * ve_s_1
 
-    M = m_stage_1 + m_stage_2 + m_c_dragon
+    M = m_stage_1 + m_stage_2 + m_c_dragon + m_payload
     m = t * m_dot_s_1
 
     thrust_acc = thrust / (M - m) / 1000
-    g = - (G * M_Earth) / ((h * 1000) ** 2) / 1000 * np.sin(90)
+    g = - (G * M_Earth) / ((h * 1000) ** 2) / 1000 * np.sin(81)
 
     dvdt = thrust_acc + g  # - (.3 * 0.25 * 200) / (M - m)
 
@@ -62,7 +70,7 @@ def stage_2(state_var_s_2_ignition, t):
 
     thrust = m_dot_s_2 * ve_s_2
 
-    M = m_stage_2 + m_c_dragon
+    M = m_stage_2 + m_c_dragon + m_payload
     m = (t - t_burn_s_1) * m_dot_s_2
 
     thrust_acc = thrust / (M - m) / 1000
